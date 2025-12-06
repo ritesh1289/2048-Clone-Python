@@ -40,4 +40,4 @@ Use the arrow keys to move the tiles:
 
 1. Clone the repository:  
 ```bash
-git clone https://github.com/ritesh1289/2048-Clone-Python/blob/main/2048-Clone-Python
+git clone https://github.com/ritesh1289/2048-Clone-Python/blob/main/2048-Clone-Python-Code
