@@ -1,0 +1,181 @@
+import random
+import tkinter as tk
+from tkinter import messagebox
+
+def start_game():
+    mat = [[0] * 4 for _ in range(4)]
+    add_new_2(mat)
+    add_new_2(mat)
+    return mat
+
+def add_new_2(mat):
+    empty_cells = []
+    for r in range(4):
+        for c in range(4):
+            if mat[r][c] == 0:
+                empty_cells.append((r, c))
+    if empty_cells:
+        r, c = random.choice(empty_cells)
+        mat[r][c] = 2 if random.random() < 0.9 else 4
+        return True
+    return False
+
+def get_current_state(mat):
+    for i in range(4):
+        for j in range(4):
+            if mat[i][j] == 2048:
+                return 'WON'
+            if mat[i][j] == 0:
+                return 'GAME NOT OVER'
+    for i in range(4):
+        for j in range(4):
+            if j < 3 and mat[i][j] == mat[i][j + 1]:
+                return 'GAME NOT OVER'
+            if i < 3 and mat[i][j] == mat[i + 1][j]:
+                return 'GAME NOT OVER'
+    return 'LOST'
+
+def compress(mat):
+    changed = False
+    new_mat = [[0] * 4 for _ in range(4)]
+    for i in range(4):
+        pos = 0
+        for j in range(4):
+            if mat[i][j] != 0:
+                new_mat[i][pos] = mat[i][j]
+                if j != pos:
+                    changed = True
+                pos += 1
+    return new_mat, changed
+
+def merge(mat):
+    changed = False
+    for i in range(4):
+        for j in range(3):
+            if mat[i][j] == mat[i][j + 1] and mat[i][j] != 0:
+                mat[i][j] *= 2
+                mat[i][j + 1] = 0
+                changed = True
+    return mat, changed
+
+def reverse(mat):
+    return [row[::-1] for row in mat]
+
+def transpose(mat):
+    return [[mat[j][i] for j in range(4)] for i in range(4)]
+
+def move_left(grid):
+    new_grid, changed1 = compress(grid)
+    new_grid, changed2 = merge(new_grid)
+    changed = changed1 or changed2
+    new_grid, _ = compress(new_grid)
+    return new_grid, changed
+
+def move_right(grid):
+    new_grid = reverse(grid)
+    new_grid, changed = move_left(new_grid)
+    new_grid = reverse(new_grid)
+    return new_grid, changed
+
+def move_up(grid):
+    new_grid = transpose(grid)
+    new_grid, changed = move_left(new_grid)
+    new_grid = transpose(new_grid)
+    return new_grid, changed
+
+def move_down(grid):
+    new_grid = transpose(grid)
+    new_grid, changed = move_right(new_grid)
+    new_grid = transpose(new_grid)
+    return new_grid, changed
+
+class Game2048(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.master.title('2048 Tkinter')
+
+        self.tile_colors = {
+            0: ('#cdc1b4', '#776e65'),
+            2: ('#eee4da', '#776e65'),
+            4: ('#ede0c8', '#776e65'),
+            8: ('#f2b179', '#f9f6f2'),
+            16: ('#f59563', '#f9f6f2'),
+            32: ('#f67c5f', '#f9f6f2'),
+            64: ('#f65e3b', '#f6f2e8'),
+            128: ('#edcf72', '#f9f6f2'),
+            256: ('#edcc61', '#f9f6f2'),
+            512: ('#edc850', '#f9f6f2'),
+            1024: ('#edc53f', '#f9f6f2'),
+            2048: ('#edc22e', '#f9f6f2')
+        }
+
+        self.grid_cells = []
+        self.mat = start_game()
+        self.init_ui()
+        self.update_grid_ui()
+
+        self.master.bind('<Key>', self.key_press)
+
+    def init_ui(self):
+        background = tk.Frame(self.master, bg='#92877d', bd=4, relief=tk.RAISED)
+        background.pack(pady=10, padx=10)
+
+        for i in range(4):
+            grid_row = []
+            for j in range(4):
+                cell_frame = tk.Frame(background, bg=self.tile_colors[0][0], width=100, height=100)
+                cell_frame.grid(row=i, column=j, padx=5, pady=5)
+                tile_label = tk.Label(cell_frame, text='', font=('Helvetica', 28, 'bold'),
+                                      bg=self.tile_colors[0][0], fg=self.tile_colors[0][1])
+                tile_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                grid_row.append(tile_label)
+            self.grid_cells.append(grid_row)
+
+    def update_grid_ui(self):
+        for i in range(4):
+            for j in range(4):
+                cell_value = self.mat[i][j]
+                label = self.grid_cells[i][j]
+                bg_color, fg_color = self.tile_colors.get(cell_value, ('#3c3a32', '#f9f6f2'))
+                label.configure(
+                    text=str(cell_value) if cell_value != 0 else '',
+                    bg=bg_color,
+                    fg=fg_color
+                )
+                if cell_value >= 1000:
+                    label.configure(font=('Helvetica', 24, 'bold'))
+                elif cell_value >= 100:
+                    label.configure(font=('Helvetica', 28, 'bold'))
+                else:
+                    label.configure(font=('Helvetica', 32, 'bold'))
+
+    def key_press(self, event):
+        key = event.keysym
+        move_functions = {
+            'Up': move_up,
+            'Down': move_down,
+            'Left': move_left,
+            'Right': move_right
+        }
+
+        if key in move_functions:
+            move_func = move_functions[key]
+            new_mat, changed = move_func(self.mat)
+            if changed:
+                self.mat = new_mat
+                add_new_2(self.mat)
+                self.update_grid_ui()
+                self.check_game_status()
+
+    def check_game_status(self):
+        state = get_current_state(self.mat)
+        if state == 'WON':
+            messagebox.showinfo('2048', '🎉 Congratulations! You reached 2048!')
+        elif state == 'LOST':
+            messagebox.showinfo('2048', '😢 Game Over! Try again.')
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    Game2048(root)
+    root.mainloop()
