@@ -42,3 +42,8 @@ Use the arrow keys to move the tiles:
 
 git clone
             https://github.com/ritesh1289/2048-Clone-Python/blob/main/2048-Clone-Python-Code
+
+---
+
+Author By
+     Ritesh Patwa
