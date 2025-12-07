@@ -45,5 +45,5 @@ git clone
 
 ---
 
-Author By
-     Ritesh Patwa
+## Author By 
+         Ritesh Patwa
